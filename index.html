@@ -180,6 +180,196 @@
         .log-time { color: #888; margin-right: 10px; }
         .log-action { font-weight: bold; }
         .log-data { color: #ccc; }
+
+        /* OBS WebSocket接続パネルのスタイル */
+        .obs-connection-panel {
+            background-color: #2a2a2a;
+            border: 2px solid #555;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .obs-connection-panel h3 {
+            margin-top: 0;
+            color: #ddd;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+
+        .obs-settings-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .obs-settings-group label {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 0;
+        }
+
+        .obs-settings-group label span {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .obs-settings-group input {
+            background-color: #333;
+            border: 1px solid #555;
+            color: #eee;
+            padding: 8px;
+            border-radius: 3px;
+        }
+
+        .obs-connection-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        #obs_connect_button { background-color: #28a745; color: white; }
+        #obs_connect_button:disabled { background-color: #555; cursor: not-allowed; }
+        #obs_disconnect_button { background-color: #dc3545; color: white; display: none; }
+
+        .obs-status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background-color: #333;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .obs-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #999;
+            transition: background-color 0.3s;
+        }
+
+        .obs-status-dot.connected {
+            background-color: #28a745;
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
+        }
+
+        .obs-status-dot.disconnected {
+            background-color: #dc3545;
+        }
+
+        .obs-config-section {
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .obs-config-section label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .obs-config-section label:last-child {
+            margin-bottom: 0;
+        }
+
+        .obs-config-section input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        .obs-log {
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: monospace;
+            color: #aaa;
+            margin-top: 10px;
+        }
+
+        .obs-log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .obs-log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .obs-log-entry.success { color: #28a745; }
+        .obs-log-entry.error { color: #dc3545; }
+        .obs-log-entry.info { color: #17a2b8; }
+        
+        /* グラフィカルなリザルト表示（プロセカ風） */
+        .graphic-result {
+            display: grid;
+            grid-template-columns: 180px repeat(5, 1fr);
+            gap: 10px;
+            align-items: stretch;
+            margin-top: 20px;
+            color: #fff;
+        }
+
+        .graphic-result .label-col {
+            background: #2b2b2b;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            justify-content: flex-start;
+            border-radius: 6px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .graphic-result .player-col {
+            background: #3a3a3a;
+            padding: 10px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .graphic-player-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #f5f5f5;
+        }
+
+        .graphic-count {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: #ffd27a;
+            background: rgba(0,0,0,0.12);
+            border-radius: 6px;
+            padding: 6px 8px;
+            min-height: 44px;
+        }
+
+        .graphic-label { font-size: 16px; color: #cfcfcf; }
+
+        .graphic-total { font-size: 34px; color: #ffcc66; background: rgba(0,0,0,0.18); }
     </style>
 </head>
 <body>
@@ -199,6 +389,59 @@
         <div class="total-songs-settings settings-group">
             <h3>ゲーム設定</h3>
             <label>総曲数: <input type="number" id="total_songs" value="5" min="1"></label>
+        </div>
+
+        <div class="obs-connection-panel">
+            <h3>🎥 OBS WebSocket連携</h3>
+            
+            <div class="obs-connection-buttons">
+                <button id="obs_connect_button">接続</button>
+                <button id="obs_disconnect_button">切断</button>
+                <div class="obs-status-indicator">
+                    <div class="obs-status-dot disconnected" id="obs_status_dot"></div>
+                    <span id="obs_status_text">未接続</span>
+                </div>
+            </div>
+
+            <div class="obs-settings-group">
+                <label>
+                    <span>WebSocketアドレス</span>
+                    <input type="text" id="obs_address" value="localhost" placeholder="localhost">
+                </label>
+                <label>
+                    <span>ポート番号</span>
+                    <input type="number" id="obs_port" value="4455" min="1" max="65535">
+                </label>
+                <label>
+                    <span>パスワード (OBS設定を確認)</span>
+                    <input type="password" id="obs_password" placeholder="パスワード">
+                </label>
+                <label style="visibility: hidden;">
+                    <span></span>
+                    <input type="text">
+                </label>
+            </div>
+
+            <div class="obs-config-section">
+                <label>
+                    <input type="checkbox" id="obs_auto_sync" checked>
+                    <span>スコア確定時に自動でOBSに同期する</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="obs_show_results" checked>
+                    <span>結果表示時にシーン自動切り替え (「OBS-Results」シーン)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="obs_hide_results" checked>
+                    <span>入力画面に戻る時にシーン自動復帰 (「OBS-Input」シーン)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="obs_send_detailed_data" checked>
+                    <span>詳細データをブラウザソースに送信する</span>
+                </label>
+            </div>
+
+            <div class="obs-log" id="obs_log"></div>
         </div>
 
         <div class="scoring-settings settings-group">
@@ -285,6 +528,7 @@
             <button id="show_final_values_button" style="margin-bottom: 20px;">回数と合計の数値を表示</button>
             <div id="final_result_table_container">
             </div>
+            <div id="graphic_result_container"></div>
             <button id="back_to_input">入力画面に戻る</button>
         </div>
     </div>
@@ -310,6 +554,7 @@
         const STORAGE_KEY_LOG = 'pjskaiAggregation_log';
         const STORAGE_KEY_NAMES = 'pjskaiAggregation_names';
         const STORAGE_KEY_SETTINGS = 'pjskaiAggregation_settings';
+        const STORAGE_KEY_OBS_SETTINGS = 'pjskaiAggregation_obsSettings';
         
         const DEFAULT_NAMES = ["プレイヤー1", "プレイヤー2", "プレイヤー3", "プレイヤー4", "プレイヤー5"];
         const DEFAULT_SONGS = 5;
@@ -324,6 +569,10 @@
         let allSongsData = [];
         let currentSongNumber = 1; 
         let actionLog = [];
+        let obsWebSocket = null;
+        let obsConnected = false;
+        let obsMessageId = 1;
+        let obsLog = [];
 
         const RANK_CLASSES = {
             'perfect': 'rank-perfect',
@@ -333,10 +582,441 @@
             'miss': 'rank-miss'
         };
 
+        // ===== OBS WebSocket関連クラス =====
+        class OBSWebSocketClient {
+            constructor(address, port, password) {
+                this.address = address;
+                this.port = port;
+                this.password = password;
+                this.ws = null;
+                this.messageId = 1;
+                this.pendingRequests = new Map();
+            }
+
+            connect() {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const url = `ws://${this.address}:${this.port}`;
+                        this.ws = new WebSocket(url);
+
+                        this.ws.onopen = () => {
+                            addOBSLog('接続成功', 'success');
+                            resolve();
+                        };
+
+                        this.ws.onmessage = (event) => {
+                            const data = JSON.parse(event.data);
+                            this.handleMessage(data);
+                        };
+
+                        this.ws.onerror = (error) => {
+                            addOBSLog(`接続エラー: ${error && error.message ? error.message : error}`, 'error');
+                            // do not reject here because onclose will follow
+                        };
+
+                        this.ws.onclose = (event) => {
+                            const code = event && event.code ? event.code : 'N/A';
+                            const reason = event && event.reason ? event.reason : '';
+                            addOBSLog(`接続を切断しました (code:${code}) ${reason}`, 'info');
+                            obsConnected = false;
+                            updateOBSStatusDisplay();
+                            // reject if connection closed before resolve
+                            reject(new Error('WebSocket closed'));
+                        };
+                    } catch (error) {
+                        addOBSLog(`エラー: ${error.message}`, 'error');
+                        reject(error);
+                    }
+                });
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+            }
+
+            handleMessage(data) {
+                // ハンドシェイク処理
+                if (data.op === 0) { // Hello
+                    // ログにHello内容を表示（デバッグ用）
+                    try {
+                        addOBSLog(`Hello受信: ${JSON.stringify(data.d).slice(0,200)}`, 'info');
+                    } catch (e) {}
+                    // 非同期で認証データを生成してからIdentifyを直接送信する（sendMessage を使うとResponseを待ってしまいタイムアウトするため）
+                    (async () => {
+                        try {
+                            let auth = undefined;
+                            if (data.d && data.d.authentication) {
+                                auth = await this._generateAuth(data.d.authentication);
+                            }
+                            const identify = {
+                                op: 1,
+                                d: {
+                                    rpcVersion: 1,
+                                    authentication: auth,
+                                    eventSubscriptions: 33
+                                }
+                            };
+                            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                                this.ws.send(JSON.stringify(identify));
+                                addOBSLog('Identify送信済み', 'info');
+                            } else {
+                                addOBSLog('WebSocketが開いていないためIdentify送信できません', 'error');
+                            }
+                        } catch (e) {
+                            addOBSLog(`Identify送信エラー: ${e.message}`, 'error');
+                        }
+                    })();
+                }
+                // Identified/認証成功
+                else if (data.op === 2) { // Identified
+                    addOBSLog('認証成功、接続完了', 'success');
+                    obsConnected = true;
+                    updateOBSStatusDisplay();
+                }
+                // Response
+                else if (data.op === 7) { // Response
+                    const requestId = data.d.requestId;
+                    if (this.pendingRequests.has(requestId)) {
+                        const { resolve, reject } = this.pendingRequests.get(requestId);
+                        this.pendingRequests.delete(requestId);
+                        if (data.d.requestStatus.result) {
+                            resolve(data.d.responseData);
+                        } else {
+                            reject(new Error(data.d.requestStatus.code));
+                        }
+                    }
+                }
+                // Event
+                else if (data.op === 5) { // Event
+                    // イベント処理が必要な場合はここに追加
+                }
+            }
+
+            _generateAuth(authChallenge) {
+                if (!authChallenge) return undefined;
+
+                const secret = this.password;
+                const challenge = authChallenge.challenge;
+                const salt = authChallenge.salt;
+
+                // WebCrypto API を使用
+                return new Promise(async (resolve) => {
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(secret + salt);
+                    const hash = await crypto.subtle.digest('SHA-256', data);
+                    const secretHash = btoa(String.fromCharCode(...new Uint8Array(hash)));
+
+                    const authData = encoder.encode(secretHash + challenge);
+                    const authHash = await crypto.subtle.digest('SHA-256', authData);
+                    const auth = btoa(String.fromCharCode(...new Uint8Array(authHash)));
+                    resolve(auth);
+                }).then(auth => auth);
+            }
+
+            sendMessage(message) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const requestId = this.messageId++;
+                        message.d = message.d || {};
+                        message.d.requestId = requestId;
+
+                        this.pendingRequests.set(requestId, { resolve, reject });
+                        
+                        setTimeout(() => {
+                            if (this.pendingRequests.has(requestId)) {
+                                this.pendingRequests.delete(requestId);
+                                reject(new Error('Request timeout'));
+                            }
+                        }, 5000);
+
+                        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                            this.ws.send(JSON.stringify(message));
+                        } else {
+                            throw new Error('WebSocket is not connected');
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            async setSceneName(sceneName) {
+                try {
+                    await this.sendMessage({
+                        op: 6,
+                        d: {
+                            requestType: 'SetCurrentProgramScene',
+                            requestData: {
+                                sceneName: sceneName
+                            }
+                        }
+                    });
+                    addOBSLog(`シーン切り替え: ${sceneName}`, 'success');
+                } catch (error) {
+                    addOBSLog(`シーン切り替え失敗: ${error.message}`, 'error');
+                }
+            }
+
+            async setSourceText(sourceName, text) {
+                try {
+                    await this.sendMessage({
+                        op: 6,
+                        d: {
+                            requestType: 'SetInputSettings',
+                            requestData: {
+                                inputName: sourceName,
+                                inputSettings: {
+                                    text: text
+                                }
+                            }
+                        }
+                    });
+                    addOBSLog(`テキスト更新: ${sourceName}`, 'success');
+                } catch (error) {
+                    addOBSLog(`テキスト更新失敗: ${error.message}`, 'error');
+                }
+            }
+
+            async setBrowserSourceHTML(sourceName, html) {
+                try {
+                    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+                    await this.sendMessage({
+                        op: 6,
+                        d: {
+                            requestType: 'SetInputSettings',
+                            requestData: {
+                                inputName: sourceName,
+                                inputSettings: {
+                                    url: dataUrl
+                                }
+                            }
+                        }
+                    });
+                    addOBSLog(`ブラウザソース更新: ${sourceName}`, 'success');
+                } catch (error) {
+                    addOBSLog(`ブラウザソース更新失敗: ${error.message}`, 'error');
+                }
+            }
+
+            async getInputList() {
+                try {
+                    const res = await this.sendMessage({
+                        op: 6,
+                        d: {
+                            requestType: 'GetInputList',
+                            requestData: {}
+                        }
+                    });
+                    return res.inputs || res; // v5形式なら {inputs: [...]}
+                } catch (e) {
+                    addOBSLog(`入力一覧取得失敗: ${e.message}`, 'error');
+                    return [];
+                }
+            }
+        }
+
+        function addOBSLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString('ja-JP');
+            obsLog.push({ message, type, timestamp });
+            
+            if (obsLog.length > 20) {
+                obsLog.shift();
+            }
+
+            updateOBSLogDisplay();
+        }
+
+        function updateOBSLogDisplay() {
+            const logContainer = document.getElementById('obs_log');
+            logContainer.innerHTML = obsLog.map(log => 
+                `<div class="obs-log-entry ${log.type}">[${log.timestamp}] ${log.message}</div>`
+            ).join('');
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateOBSStatusDisplay() {
+            const statusDot = document.getElementById('obs_status_dot');
+            const statusText = document.getElementById('obs_status_text');
+            const connectBtn = document.getElementById('obs_connect_button');
+            const disconnectBtn = document.getElementById('obs_disconnect_button');
+
+            if (obsConnected) {
+                statusDot.classList.remove('disconnected');
+                statusDot.classList.add('connected');
+                statusText.textContent = '接続済み';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+            } else {
+                statusDot.classList.remove('connected');
+                statusDot.classList.add('disconnected');
+                statusText.textContent = '未接続';
+                connectBtn.style.display = 'block';
+                disconnectBtn.style.display = 'none';
+            }
+        }
+
+        function loadOBSSettings() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_OBS_SETTINGS);
+                if (stored) {
+                    const settings = JSON.parse(stored);
+                    document.getElementById('obs_address').value = settings.address || 'localhost';
+                    document.getElementById('obs_port').value = settings.port || '4455';
+                    document.getElementById('obs_password').value = settings.password || '';
+                    document.getElementById('obs_auto_sync').checked = settings.autoSync !== false;
+                    document.getElementById('obs_show_results').checked = settings.showResults !== false;
+                    document.getElementById('obs_hide_results').checked = settings.hideResults !== false;
+                    document.getElementById('obs_send_detailed_data').checked = settings.sendDetailedData !== false;
+                }
+            } catch (e) {
+                console.error("OBS設定の読み込みに失敗", e);
+            }
+        }
+
+        function saveOBSSettings() {
+            try {
+                const settings = {
+                    address: document.getElementById('obs_address').value,
+                    port: parseInt(document.getElementById('obs_port').value),
+                    password: document.getElementById('obs_password').value,
+                    autoSync: document.getElementById('obs_auto_sync').checked,
+                    showResults: document.getElementById('obs_show_results').checked,
+                    hideResults: document.getElementById('obs_hide_results').checked,
+                    sendDetailedData: document.getElementById('obs_send_detailed_data').checked
+                };
+                localStorage.setItem(STORAGE_KEY_OBS_SETTINGS, JSON.stringify(settings));
+            } catch (e) {
+                console.error("OBS設定の保存に失敗", e);
+            }
+        }
+
+        async function connectToOBS() {
+            try {
+                const address = document.getElementById('obs_address').value;
+                const port = parseInt(document.getElementById('obs_port').value);
+                const password = document.getElementById('obs_password').value;
+
+                if (!address || !port) {
+                    addOBSLog('アドレスとポート番号を入力してください', 'error');
+                    return;
+                }
+
+                addOBSLog('OBSに接続中...', 'info');
+                obsWebSocket = new OBSWebSocketClient(address, port, password);
+                
+                await obsWebSocket.connect();
+                saveOBSSettings();
+                updateOBSStatusDisplay();
+                addOBSLog('接続完了。表示反映は「回数と合計の数値を表示」ボタンを押してください', 'info');
+                // 接続後はIdentify応答（op:2）が来るまで待つ。来てからOBS操作を行う。
+                const startWait = Date.now();
+                const waited = await new Promise(resolve => {
+                    const iv = setInterval(() => {
+                        if (obsConnected) {
+                            clearInterval(iv);
+                            resolve(true);
+                        }
+                        if (Date.now() - startWait > 5000) {
+                            clearInterval(iv);
+                            resolve(false);
+                        }
+                    }, 200);
+                });
+
+                if (waited) {
+                    // デバッグ: 接続後にOBSの入力(ソース)一覧を取得してログ表示
+                    try {
+                        const inputs = await obsWebSocket.getInputList();
+                        if (Array.isArray(inputs)) {
+                            const names = inputs.map(i => i.inputName || i.input_name || i.name).filter(Boolean);
+                            addOBSLog(`OBS入力一覧: ${names.join(', ')}`, 'info');
+                        } else {
+                            addOBSLog('OBS入力一覧を取得しましたが、形式が不明です', 'info');
+                        }
+                    } catch (e) {
+                        addOBSLog(`入力一覧取得エラー: ${e.message}`, 'error');
+                    }
+                } else {
+                    addOBSLog('Identify応答を待機中にタイムアウトしました。手動で再同期してください', 'error');
+                }
+            } catch (error) {
+                addOBSLog(`接続失敗: ${error.message}`, 'error');
+                obsWebSocket = null;
+                obsConnected = false;
+                updateOBSStatusDisplay();
+            }
+        }
+
+        function disconnectFromOBS() {
+            if (obsWebSocket) {
+                obsWebSocket.disconnect();
+                obsWebSocket = null;
+                obsConnected = false;
+                updateOBSStatusDisplay();
+            }
+        }
+
+        async function syncResultsToOBS(playerData, isOverall = false) {
+            if (!obsConnected || !obsWebSocket) {
+                return;
+            }
+
+            try {
+                if (document.getElementById('obs_send_detailed_data').checked) {
+                    const resultData = {
+                        timestamp: new Date().toISOString(),
+                        type: isOverall ? 'overall' : 'single_song',
+                        currentSong: currentSongNumber,
+                        totalSongs: parseInt(document.getElementById('total_songs').value),
+                        results: playerData.map(p => ({
+                            name: p.name,
+                            score: p.totalScore,
+                            counts: p.counts || p.totalCounts
+                        }))
+                    };
+
+                    const resultText = JSON.stringify(resultData);
+                    await obsWebSocket.setSourceText('結果データ', resultText);
+                }
+
+                // 詳細な結果テキストを生成（各ランクのカウント数を含む）
+                const resultTexts = playerData
+                    .sort((a, b) => b.totalScore - a.totalScore)
+                    .map(p => {
+                        const counts = p.counts || p.totalCounts;
+                        const countString = counts ? 
+                            `P:${counts.perfect || 0} G:${counts.great || 0} Go:${counts.good || 0} B:${counts.bad || 0} M:${counts.miss || 0}` :
+                            '';
+                        return `${p.name}\n${countString}\nTOTAL: ${p.totalScore}点`;
+                    })
+                    .join('\n\n');
+
+                await obsWebSocket.setSourceText('スコア表示', resultTexts);
+
+                // さらにBrowserSourceにHTMLで表示したい場合（result_overlay というBrowser Sourceを作成しておく）
+                try {
+                    if (document.getElementById('obs_show_results').checked) {
+                        const overlayHtml = buildResultOverlayHTML(playerData, isOverall);
+                        await obsWebSocket.setBrowserSourceHTML('result_overlay', overlayHtml);
+                    }
+                } catch (e) {
+                    addOBSLog(`オーバーレイ更新失敗: ${e.message}`, 'error');
+                }
+
+            } catch (error) {
+                addOBSLog(`データ送信失敗: ${error.message}`, 'error');
+            }
+        }
+
+
         document.addEventListener('DOMContentLoaded', () => {
             
             // 🌟 データのロード 🌟
             loadData();
+            loadOBSSettings();
 
             document.getElementById('result_screen').style.display = 'none';
             
@@ -357,8 +1037,21 @@
             RANKS.forEach(rank => {
                  document.getElementById(`score_${rank}`).addEventListener('change', saveSettings);
             });
+
+            // OBS設定の変更を監視
+            ['obs_address', 'obs_port', 'obs_password', 'obs_auto_sync', 'obs_show_results', 'obs_hide_results', 'obs_send_detailed_data'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', saveOBSSettings);
+                }
+            });
+
+            // OBS接続ボタンのリスナー
+            document.getElementById('obs_connect_button').addEventListener('click', connectToOBS);
+            document.getElementById('obs_disconnect_button').addEventListener('click', disconnectFromOBS);
             
             updateTotalSongs(); 
+            updateOBSStatusDisplay();
             
             document.getElementById('current_song_display').textContent = currentSongNumber;
 
@@ -753,7 +1446,9 @@
             
             saveData(); // データをlocalStorageに保存
 
-            logAction('操作', `${currentSongNumber - 1}曲目のスコアを確定`, songData.scores); 
+            logAction('操作', `${currentSongNumber - 1}曲目のスコアを確定`, songData.scores);
+
+            // OBSへの自動同期は行わない（最終表示ボタンで反映する仕様）
 
             let alertMessage = `${currentSongNumber - 1}曲目のスコアを記録しました！\n\n`;
             
@@ -855,7 +1550,7 @@
             container.style.display = 'block'; 
         }
 
-        function showFinalValues() {
+        async function showFinalValues() {
             const tableContainer = document.getElementById('final_result_table_container');
             
             tableContainer.classList.add('show-value');
@@ -881,6 +1576,20 @@
             highlightWinners(dataForHighlight, highlightType);
             
             logAction('操作', `${title}の数値を表示/ハイライト`); 
+
+            // OBSへ反映：buildResultOverlayHTMLで自動生成されるアニメーションスクリプトを使う
+            try {
+                if (obsConnected && obsWebSocket) {
+                    // labelOnly=false でアニメーション用HTMLを生成（自動的にスクリプトが埋め込まれる）
+                    const animatedHtml = buildResultOverlayHTML(dataForHighlight, highlightType === 'overall', false, false);
+                    await obsWebSocket.setBrowserSourceHTML('result_overlay', animatedHtml);
+                    addOBSLog('OBSに最終数値を反映しました', 'success');
+                } else {
+                    addOBSLog('OBS未接続のため反映できませんでした', 'error');
+                }
+            } catch (e) {
+                addOBSLog(`OBS反映エラー: ${e.message}`, 'error');
+            }
         }
 
         function highlightWinners(data, type) {
@@ -927,15 +1636,32 @@
             }
         }
 
-        function calculateAndShowSingleSongResult() {
+        async function calculateAndShowSingleSongResult() {
             const allPlayerData = getPlayerData();
             const songTitle = `曲目 ${currentSongNumber} の単体結果`;
             generateResultTable(allPlayerData, songTitle, 'single_song');
             toggleScreens(false);
-            logAction('操作', songTitle, allPlayerData.map(p => `${p.name}: ${p.totalScore}点`)); 
+            logAction('操作', songTitle, allPlayerData.map(p => `${p.name}: ${p.totalScore}点`));
+
+            // OBSシーンを結果表示用に切り替え、ラベルのみの初期オーバーレイを送信
+            if (obsConnected && obsWebSocket) {
+                try {
+                    await obsWebSocket.setSceneName('OBS-Results');
+                    addOBSLog('OBSシーンを OBS-Results に切り替えました', 'info');
+                    
+                    // プレビュー時はラベルのみを表示
+                    if (document.getElementById('obs_show_results').checked) {
+                        const labelOnlyHtml = buildResultOverlayHTML(allPlayerData, false, false, true);
+                        await obsWebSocket.setBrowserSourceHTML('result_overlay', labelOnlyHtml);
+                        addOBSLog('OBSにラベル表示を送信しました', 'info');
+                    }
+                } catch (e) {
+                    addOBSLog(`OBSシーン切り替え失敗: ${e.message}`, 'error');
+                }
+            }
         }
 
-        function calculateAndShowOverallResults() {
+        async function calculateAndShowOverallResults() {
             if (allSongsData.length === 0) {
                 alert("まだ確定された曲のスコアがありません。");
                 return;
@@ -944,7 +1670,24 @@
             const overallPlayerData = getOverallPlayerData();
             generateResultTable(overallPlayerData, '総合結果', 'overall');
             toggleScreens(false);
-            logAction('操作', '総合結果を表示', overallPlayerData.map(p => `${p.name}: ${p.totalScore}点`)); 
+            logAction('操作', '総合結果を表示', overallPlayerData.map(p => `${p.name}: ${p.totalScore}点`));
+
+            // OBSシーンを結果表示用に切り替え、ラベルのみの初期オーバーレイを送信
+            if (obsConnected && obsWebSocket) {
+                try {
+                    await obsWebSocket.setSceneName('OBS-Results');
+                    addOBSLog('OBSシーンを OBS-Results に切り替えました', 'info');
+                    
+                    // プレビュー時はラベルのみを表示
+                    if (document.getElementById('obs_show_results').checked) {
+                        const labelOnlyHtml = buildResultOverlayHTML(overallPlayerData, true, false, true);
+                        await obsWebSocket.setBrowserSourceHTML('result_overlay', labelOnlyHtml);
+                        addOBSLog('OBSにラベル表示を送信しました', 'info');
+                    }
+                } catch (e) {
+                    addOBSLog(`OBSシーン切り替え失敗: ${e.message}`, 'error');
+                }
+            }
         }
 
         function getOverallPlayerData() {
@@ -985,7 +1728,11 @@
             container.innerHTML = ''; 
             document.getElementById('result_title').textContent = title;
 
-            container.classList.remove('show-value'); 
+            // 数字を必ず隠す状態に初期化
+            container.classList.remove('show-value');
+            document.querySelectorAll('.hidden-value').forEach(el => {
+                el.style.visibility = 'hidden';
+            });
             document.getElementById('show_final_values_button').style.display = 'block';
 
             const table = document.createElement('table');
@@ -1065,11 +1812,210 @@
             }
 
             container.appendChild(table);
+            // 併せてグラフィカル表示を更新
+            renderGraphicResult(data, type);
+            // プレビュー時はOBSに送信しない（ルーレットボタン押下時のみ送信）
+        }
+
+        function renderGraphicResult(data, type) {
+            const container = document.getElementById('graphic_result_container');
+            container.innerHTML = '';
+
+            if (!data || data.length === 0) return;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'graphic-result';
+
+            // ラベル列
+            const labelCol = document.createElement('div');
+            labelCol.className = 'label-col';
+            const labels = ['PERFECT', 'GREAT', 'GOOD', 'BAD', 'MISS', 'TOTAL'];
+            labels.forEach(lbl => {
+                const span = document.createElement('div');
+                span.className = 'graphic-label';
+                span.textContent = lbl;
+                labelCol.appendChild(span);
+            });
+            wrapper.appendChild(labelCol);
+
+            // 各プレイヤー列
+            // data は既にソートされている想定（generate側でソートされている）
+            data.forEach(pData => {
+                const col = document.createElement('div');
+                col.className = 'player-col';
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'graphic-player-name';
+                nameEl.textContent = pData.name || `P${pData.id}`;
+                col.appendChild(nameEl);
+
+                const counts = pData.counts || pData.totalCounts || {};
+
+                // PERFECT
+                const perf = document.createElement('div');
+                perf.className = 'graphic-count';
+                perf.textContent = String(counts.perfect || 0);
+                col.appendChild(perf);
+
+                // GREAT
+                const great = document.createElement('div');
+                great.className = 'graphic-count';
+                great.textContent = String(counts.great || 0);
+                col.appendChild(great);
+
+                // GOOD
+                const good = document.createElement('div');
+                good.className = 'graphic-count';
+                good.textContent = String(counts.good || 0);
+                col.appendChild(good);
+
+                // BAD
+                const bad = document.createElement('div');
+                bad.className = 'graphic-count';
+                bad.textContent = String(counts.bad || 0);
+                col.appendChild(bad);
+
+                // MISS
+                const miss = document.createElement('div');
+                miss.className = 'graphic-count';
+                miss.textContent = String(counts.miss || 0);
+                col.appendChild(miss);
+
+                // TOTAL
+                const total = document.createElement('div');
+                total.className = 'graphic-count graphic-total';
+                total.textContent = String(pData.totalScore || 0);
+                col.appendChild(total);
+
+                wrapper.appendChild(col);
+            });
+
+            container.appendChild(wrapper);
+        }
+
+        function buildResultOverlayHTML(data, isOverall, animate = false, labelOnly = false) {
+            // テーブル形式のHTMLを生成（OBSのBrowser Source向け）
+            // ラベル列（PERFECT等）を削除し、プレイヤー列のみ表示
+            const playerCount = data.length;
+            const tableWidth = (playerCount * 180); // player col only
+            
+            const style = 'html,body{margin:0;padding:0;background:rgba(0,0,0,0);font-family:"Arial",sans-serif;color:#fff}' +
+                '.wrap{width:' + tableWidth + 'px;height:100%;margin:0;padding:0;overflow:hidden}' +
+                'table{width:100%;border-collapse:collapse}' +
+                'thead{background:rgba(0,0,0,0)}' +
+                'thead th{padding:14px 10px;text-align:center;color:#000;font-weight:700;font-size:18px;border:1px solid #333;background:rgba(0,0,0,0)}' +
+                'tbody td{padding:12px 8px;text-align:center;border:1px solid #222;vertical-align:middle;font-size:16px;background:rgba(0,0,0,0)}' +
+                '.count{font-weight:800;font-size:32px;color:#000;background:#fff;border-radius:8px;padding:8px 12px;display:inline-block;min-width:60px;text-shadow:none}' +
+                '.total{font-size:36px;color:#000;background:#ffd700;border-radius:8px;padding:10px 14px;display:inline-block;font-weight:900;box-shadow:0 4px 8px rgba(0,0,0,0.3)}' +
+                '.total-row{border-top:2px solid #444}' +
+                '.total-row td{font-weight:900;background:rgba(0,0,0,0)}' +
+                '.winner{position:relative}' +
+                '.winner .count,.winner .total{position:relative;z-index:1}' +
+                '.pulse .count,.pulse .total{animation:pulse 0.7s cubic-bezier(0.4, 0, 0.6, 1) infinite !important}' +
+                '@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,215,0,1);transform:scale(1)}50%{box-shadow:0 0 0 15px rgba(255,215,0,0);transform:scale(1.08)}100%{box-shadow:0 0 0 0 rgba(255,215,0,0);transform:scale(1)}}' +
+                'body,html{height:100%;width:100%}';
+
+            // header row (player names only - no label column)
+            const headers = data.map(p => '<th>' + escapeHtml(p.name||('P'+p.id)) + '</th>').join('');
+
+            // determine winners (highest totalScore)
+            const maxScore = Math.max(...data.map(p => p.totalScore || 0));
+            const winners = data.map(p => (p.totalScore || 0) === maxScore);
+
+            // Build actual data cells (for roulette)
+            const ranks = ['perfect','great','good','bad','miss'];
+            const actualValues = [];
+            const totalValues = [];
+            
+            ranks.forEach(rank => {
+                const rankValues = [];
+                data.forEach((p, idx) => {
+                    const val = p.counts?.[rank] ?? p.totalCounts?.[rank] ?? 0;
+                    rankValues.push(val);
+                });
+                actualValues.push(rankValues);
+            });
+            
+            data.forEach((p, idx) => {
+                totalValues.push(p.totalScore ?? 0);
+            });
+
+            // Combine all rank rows into one table (no label column)
+            const rowsHtml = ranks.map((rank, rankIdx) => {
+                const cells = data.map((p, idx) => {
+                    const val = actualValues[rankIdx][idx];
+                    const cls = winners[idx] ? 'winner' : '';
+                    if (labelOnly) {
+                        // プレビュー時：数字は見えない
+                        return '<td class="' + cls + '"><span class="count" style="visibility:hidden;"></span></td>';
+                    } else {
+                        return '<td class="' + cls + '"><span class="count">' + val + '</span></td>';
+                    }
+                }).join('');
+                return '<tr>' + cells + '</tr>';
+            }).join('');
+
+            // total row 
+            const totalCells = data.map((p, idx) => {
+                const cls = winners[idx] ? 'winner' : '';
+                const val = totalValues[idx];
+                if (labelOnly) {
+                    // プレビュー時：数字は見えない
+                    return '<td class="' + cls + '"><span class="total" style="visibility:hidden;"></span></td>';
+                } else {
+                    return '<td class="' + cls + '"><span class="total">' + val + '</span></td>';
+                }
+            }).join('');
+
+            let scriptPart = '';
+            if (!labelOnly) {
+                // ルーレット用スクリプト（プレビュー時には付けない）
+                scriptPart = '<script>' +
+                    'window.addEventListener("load",function(){' +
+                    'var rand=function(){return Math.floor(Math.random()*9999)+1};' +
+                    'var els=document.querySelectorAll(".count, .total");' +
+                    'var iv=setInterval(function(){els.forEach(function(el){el.textContent=rand();});},50);' +
+                    'var actualValues=' + JSON.stringify(actualValues) + ';' +
+                    'var totalValues=' + JSON.stringify(totalValues) + ';' +
+                    'setTimeout(function(){' +
+                    'clearInterval(iv);' +
+                    'var cellIdx=0;' +
+                    'actualValues.forEach(function(rankVals){rankVals.forEach(function(v){if(els[cellIdx]){els[cellIdx].textContent=v;}cellIdx++;});});' +
+                    'totalValues.forEach(function(v,i){if(els[cellIdx]){els[cellIdx].textContent=v;}cellIdx++;});' +
+                    'var winners=document.querySelectorAll(".winner");' +
+                    'winners.forEach(function(w){w.classList.add("pulse");});' +
+                    '},2500);' +
+                    '});' +
+                    '<' + '/script>';
+            }
+
+            const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' + style + '</style></head><body><div class="wrap"><table><thead><tr>' + headers + '</tr></thead><tbody>' + rowsHtml + '<tr class="total-row">' + totalCells + '</tr></tbody></table></div>' + scriptPart + '</body></html>';
+            return html;
+        }
+
+        function escapeHtml(s){
+            if (!s) return '';
+            return String(s).replace(/[&<>\"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
         }
 
         function showInputScreen() {
             toggleScreens(true);
             document.getElementById('intermediate_result_container').style.display = 'none';
+            
+            // OBS オーバーレイを非表示にする
+            if (obsConnected && obsWebSocket) {
+                try {
+                    obsWebSocket.setSourceText('result_overlay', '');
+                    addOBSLog('result_overlayを非表示にしました', 'info');
+                } catch (e) {
+                    // result_overlay がテキストソースでない場合、何もしない
+                }
+            }
+            
+            // 🎥 OBS シーン復帰
+            if (document.getElementById('obs_hide_results').checked && obsConnected && obsWebSocket) {
+                obsWebSocket.setSceneName('OBS-Input');
+            }
         }
 
         function toggleScreens(showInput) {
