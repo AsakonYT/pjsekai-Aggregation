@@ -68,6 +68,8 @@
         
         #reset_game_button { background-color: #6c757d; color: white; }
         #undo_song_button { background-color: #ffc107; color: black; }
+        
+        #show_log_button { background-color: #5a6268; color: white; }
 
         #final_result_table { width: 100%; border-collapse: collapse; margin-top: 15px; color: #eee; text-align: center; }
         #final_result_table th, #final_result_table td { border: 1px solid #444; padding: 10px 5px; min-width: 80px; }
@@ -121,6 +123,63 @@
         .show-value .hidden-value {
             visibility: visible;
         }
+        
+        /* ログモーダルウィンドウのスタイル */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 10; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.7); 
+            padding-top: 50px;
+        }
+
+        .modal-content {
+            background-color: #333;
+            margin: 5% auto; 
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 8px;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #log_content {
+            height: 400px; 
+            overflow-y: scroll;
+            background-color: #222;
+            border: 1px solid #555;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        #log_content p {
+            border-bottom: 1px dotted #444;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        .log-time { color: #888; margin-right: 10px; }
+        .log-action { font-weight: bold; }
+        .log-data { color: #ccc; }
     </style>
 </head>
 <body>
@@ -157,6 +216,7 @@
             <button id="reset_scores_button">現在の入力をすべて0に戻す</button>
             <button id="show_intermediate_button">現在の回数を表示</button>
             <button id="show_single_song_result">この曲の結果をプレビュー</button>
+            <button id="show_log_button">📋 実行ログを表示</button>
 
             <hr style="margin: 20px 0; border-color: #444;"> 
             <button id="confirm_song_score">✅ この曲のスコアを確定し、次の曲へ進む</button>
@@ -229,11 +289,28 @@
         </div>
     </div>
 
+    <div id="log_modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close_log_modal">&times;</span>
+            <h3>実行ログ (操作履歴)</h3>
+            <div id="log_content">
+                </div>
+            <button id="clear_log_button">ログをクリア</button>
+        </div>
+    </div>
+
     <script>
         
         const RANKS = ['perfect', 'great', 'good', 'bad', 'miss']; 
         const NUM_PLAYERS = 5;
-
+        
+        // 🌟 localStorageキーの定義 🌟
+        const STORAGE_KEY_SONGS = 'pjskaiAggregation_songs';
+        const STORAGE_KEY_CURRENT_SONG = 'pjskaiAggregation_currentSong';
+        const STORAGE_KEY_LOG = 'pjskaiAggregation_log';
+        const STORAGE_KEY_NAMES = 'pjskaiAggregation_names';
+        const STORAGE_KEY_SETTINGS = 'pjskaiAggregation_settings';
+        
         const DEFAULT_NAMES = ["プレイヤー1", "プレイヤー2", "プレイヤー3", "プレイヤー4", "プレイヤー5"];
         const DEFAULT_SONGS = 5;
         const DEFAULT_SCORES = { 
@@ -246,6 +323,7 @@
         
         let allSongsData = [];
         let currentSongNumber = 1; 
+        let actionLog = [];
 
         const RANK_CLASSES = {
             'perfect': 'rank-perfect',
@@ -257,6 +335,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             
+            // 🌟 データのロード 🌟
+            loadData();
+
             document.getElementById('result_screen').style.display = 'none';
             
             const totalSongsInput = document.getElementById('total_songs');
@@ -267,8 +348,16 @@
                 totalSongsInput.value = total;
                 totalSongsDisplay.textContent = total;
                 updateOverallResultButtonStatus();
+                saveSettings(); // 設定変更時に保存
             };
+            
+            // 設定値の変更を監視して保存
             totalSongsInput.addEventListener('change', updateTotalSongs);
+            
+            RANKS.forEach(rank => {
+                 document.getElementById(`score_${rank}`).addEventListener('change', saveSettings);
+            });
+            
             updateTotalSongs(); 
             
             document.getElementById('current_song_display').textContent = currentSongNumber;
@@ -283,24 +372,274 @@
             document.getElementById('show_final_values_button').addEventListener('click', showFinalValues);
             document.getElementById('reset_game_button').addEventListener('click', resetGame);
             document.getElementById('undo_song_button').addEventListener('click', undoSong);
+            
+            document.getElementById('show_log_button').addEventListener('click', showLog);
+            document.getElementById('close_log_modal').addEventListener('click', hideLog);
+            document.getElementById('clear_log_button').addEventListener('click', clearLog);
+            
+            window.addEventListener('click', (event) => {
+                if (event.target === document.getElementById('log_modal')) {
+                    hideLog();
+                }
+            });
 
 
             for (let i = 1; i <= NUM_PLAYERS; i++) {
                 const inputElement = document.getElementById(`name_${i}`);
                 const headerElement = document.getElementById(`header_p${i}_name`);
+                
+                // ロード後に名前を設定
                 headerElement.textContent = inputElement.value || `プレイヤー${i}`;
+                
                 inputElement.addEventListener('input', (event) => {
                     headerElement.textContent = event.target.value || `プレイヤー${i}`;
+                    saveNames(); // 名前変更時に保存
                 });
             }
 
             document.addEventListener('keydown', (event) => {
-                if (event.key === 'Escape' && document.getElementById('result_screen').classList.contains('visible')) {
-                    showInputScreen();
+                if (event.key === 'Escape') {
+                    if (document.getElementById('result_screen').classList.contains('visible')) {
+                         showInputScreen();
+                    }
+                    if (document.getElementById('log_modal').style.display === 'block') {
+                        hideLog();
+                    }
                 }
             });
+
+            setupArrowKeyNavigation();
+            
+            // 初期ログ（ロード後に実行）
+            if (actionLog.length === 0) {
+                 logAction('システム', 'アプリ起動 (新規データ)');
+            }
         });
         
+        // ----------------------------------------------------
+        // 🌟 データ永続化 (localStorage) 関連関数 🌟
+        // ----------------------------------------------------
+
+        function saveData() {
+            try {
+                // 曲データと現在の曲数を保存
+                localStorage.setItem(STORAGE_KEY_SONGS, JSON.stringify(allSongsData));
+                localStorage.setItem(STORAGE_KEY_CURRENT_SONG, currentSongNumber.toString());
+
+                // ログを保存
+                localStorage.setItem(STORAGE_KEY_LOG, JSON.stringify(actionLog));
+                
+                // logAction('システム', 'データを自動保存'); // 自動保存の頻度が高いので、ログには残さない
+            } catch (e) {
+                console.error("データの保存に失敗しました", e);
+                alert("データの保存に失敗しました。ブラウザのストレージが満杯かもしれません。");
+            }
+        }
+        
+        function saveNames() {
+            const names = {};
+            for (let i = 1; i <= NUM_PLAYERS; i++) {
+                names[i] = document.getElementById(`name_${i}`).value;
+            }
+            localStorage.setItem(STORAGE_KEY_NAMES, JSON.stringify(names));
+        }
+
+        function saveSettings() {
+             const settings = {
+                totalSongs: document.getElementById('total_songs').value,
+                scores: {}
+            };
+            RANKS.forEach(rank => {
+                settings.scores[rank] = document.getElementById(`score_${rank}`).value;
+            });
+            localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+        }
+
+        function loadData() {
+            try {
+                // プレイヤー名のロード
+                const storedNames = localStorage.getItem(STORAGE_KEY_NAMES);
+                if (storedNames) {
+                    const names = JSON.parse(storedNames);
+                    for (let i = 1; i <= NUM_PLAYERS; i++) {
+                        document.getElementById(`name_${i}`).value = names[i] || DEFAULT_NAMES[i-1];
+                    }
+                }
+
+                // 設定のロード
+                const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+                if (storedSettings) {
+                    const settings = JSON.parse(storedSettings);
+                    document.getElementById('total_songs').value = settings.totalSongs || DEFAULT_SONGS;
+                    RANKS.forEach(rank => {
+                         document.getElementById(`score_${rank}`).value = settings.scores[rank] || DEFAULT_SCORES[rank];
+                    });
+                }
+                
+                // 曲データのロード
+                const storedSongs = localStorage.getItem(STORAGE_KEY_SONGS);
+                if (storedSongs) {
+                    allSongsData = JSON.parse(storedSongs);
+                }
+
+                // 現在の曲数のロード
+                const storedSongNumber = localStorage.getItem(STORAGE_KEY_CURRENT_SONG);
+                if (storedSongNumber) {
+                    currentSongNumber = parseInt(storedSongNumber);
+                }
+
+                // ログのロード
+                const storedLog = localStorage.getItem(STORAGE_KEY_LOG);
+                if (storedLog) {
+                    actionLog = JSON.parse(storedLog);
+                }
+                
+                if (allSongsData.length > 0 || currentSongNumber > 1) {
+                    logAction('システム', 'データを読み込み、復元しました');
+                }
+                
+            } catch (e) {
+                console.error("データの読み込みに失敗しました", e);
+                alert("データの読み込みに失敗しました。データはリセットされます。");
+                // 失敗した場合は初期状態に戻す
+                allSongsData = [];
+                currentSongNumber = 1;
+            }
+        }
+        
+        // ----------------------------------------------------
+        // 🌟 ログ関連関数 (変更なし) 🌟
+        // ----------------------------------------------------
+
+        function logAction(actor, action, data = null) {
+            const now = new Date();
+            const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            let dataString = '';
+            if (data) {
+                if (typeof data === 'object' && !Array.isArray(data)) {
+                    dataString = JSON.stringify(data, null, 2);
+                } else if (Array.isArray(data)) {
+                     dataString = JSON.stringify(data.map(d => `${d.name || d.id}: ${d.totalScore || d.score || d.action}`), null, 2);
+                } else {
+                    dataString = String(data);
+                }
+            }
+
+            actionLog.push({
+                time: timeString,
+                actor: actor,
+                action: action,
+                data: dataString
+            });
+            
+            if (actionLog.length > 200) { 
+                actionLog.shift();
+            }
+            
+            saveData(); // ログが更新されたら即座に保存
+        }
+        
+        function showLog() {
+            const logContent = document.getElementById('log_content');
+            logContent.innerHTML = '';
+            
+            actionLog.slice().reverse().forEach(log => {
+                const p = document.createElement('p');
+                p.innerHTML = `<span class="log-time">[${log.time}]</span> <span class="log-action">${log.action}</span>`;
+                
+                if (log.data) {
+                    p.innerHTML += `<br><span class="log-data">${log.data.replace(/\\n/g, '<br>')}</span>`;
+                }
+                logContent.appendChild(p);
+            });
+            
+            document.getElementById('log_modal').style.display = 'block';
+        }
+
+        function hideLog() {
+            document.getElementById('log_modal').style.display = 'none';
+        }
+
+        function clearLog() {
+            if (confirm("実行ログ、および保存されているすべてのゲームデータを消去し、初期状態に戻しますか？")) {
+                actionLog = [];
+                allSongsData = [];
+                currentSongNumber = 1;
+                localStorage.removeItem(STORAGE_KEY_SONGS);
+                localStorage.removeItem(STORAGE_KEY_CURRENT_SONG);
+                localStorage.removeItem(STORAGE_KEY_LOG);
+                
+                logAction('システム', 'すべてのゲームデータをクリア');
+                
+                resetCurrentScores();
+                updateOverallResultButtonStatus();
+                document.getElementById('current_song_display').textContent = 1;
+
+                showLog(); // クリア後のログを表示
+            }
+        }
+        
+        // ----------------------------------------------------
+        // 🌟 ゲーム操作関連関数 (保存ロジックを追加) 🌟
+        // ----------------------------------------------------
+
+
+        function setupArrowKeyNavigation() {
+            const scoreInputs = Array.from(document.querySelectorAll('.player-score'));
+            
+            if (scoreInputs.length === 0) return;
+
+            const rankIndexMap = RANKS.reduce((acc, rank, index) => {
+                acc[rank] = index;
+                return acc;
+            }, {});
+
+            document.addEventListener('keydown', (event) => {
+                if (event.target.classList.contains('player-score')) {
+                    
+                    const currentInput = event.target;
+                    const currentRank = currentInput.dataset.rank;
+                    const currentPlayer = parseInt(currentInput.dataset.player);
+
+                    let nextPlayer = currentPlayer;
+                    let nextRankIndex = rankIndexMap[currentRank];
+                    let shouldMove = false;
+
+                    switch (event.key) {
+                        case 'ArrowUp':
+                            nextRankIndex = Math.max(0, nextRankIndex - 1);
+                            shouldMove = true;
+                            break;
+                        case 'ArrowDown':
+                            nextRankIndex = Math.min(RANKS.length - 1, nextRankIndex + 1);
+                            shouldMove = true;
+                            break;
+                        case 'ArrowLeft':
+                            nextPlayer = Math.max(1, currentPlayer - 1);
+                            shouldMove = true;
+                            break;
+                        case 'ArrowRight':
+                            nextPlayer = Math.min(NUM_PLAYERS, currentPlayer + 1);
+                            shouldMove = true;
+                            break;
+                    }
+
+                    if (shouldMove) {
+                        event.preventDefault(); 
+                        
+                        const nextRank = RANKS[nextRankIndex];
+                        const nextInput = document.querySelector(`.player-score[data-player="${nextPlayer}"][data-rank="${nextRank}"]`);
+                        
+                        if (nextInput) {
+                            nextInput.focus();
+                            nextInput.select(); 
+                        }
+                    }
+                }
+            });
+        }
+
         function resetGame() {
             if (!confirm("現在の曲のデータと、すべての設定（プレイヤー名、総曲数、配点）を初期値に戻します。本当にゲームを最初からやり直しますか？")) {
                 return;
@@ -312,22 +651,25 @@
             updateOverallResultButtonStatus();
             resetCurrentScores();
             
+            // 設定値もリセット
             for (let i = 1; i <= NUM_PLAYERS; i++) {
                 const inputElement = document.getElementById(`name_${i}`);
                 const headerElement = document.getElementById(`header_p${i}_name`);
                 inputElement.value = DEFAULT_NAMES[i - 1];
                 headerElement.textContent = DEFAULT_NAMES[i - 1];
             }
-
             const totalSongsInput = document.getElementById('total_songs');
             totalSongsInput.value = DEFAULT_SONGS;
             document.getElementById('total_songs_display').textContent = DEFAULT_SONGS;
-
             RANKS.forEach(rank => {
                 document.getElementById(`score_${rank}`).value = DEFAULT_SCORES[rank];
             });
+            
+            saveNames();
+            saveSettings();
+            saveData(); // データをlocalStorageに保存
 
-
+            logAction('操作', 'ゲームデータと設定をリセット'); 
             alert("ゲームデータとすべての設定が初期値にリセットされました。");
         }
 
@@ -336,16 +678,22 @@
                 alert("まだ確定されたスコアがありません。");
                 return;
             }
+            
+            const lastSong = currentSongNumber - 1;
 
-            if (!confirm(`直前の ${currentSongNumber - 1} 曲目のスコアを削除し、一曲前に戻りますか？`)) {
+            if (!confirm(`直前の ${lastSong} 曲目のスコアを削除し、一曲前に戻りますか？`)) {
                 return;
             }
 
-            allSongsData.pop(); 
+            const deletedData = allSongsData.pop(); 
             currentSongNumber--;
             document.getElementById('current_song_display').textContent = currentSongNumber;
             updateOverallResultButtonStatus();
             resetCurrentScores();
+            
+            saveData(); // データをlocalStorageに保存
+
+            logAction('操作', `${lastSong}曲目を元に戻しました`, deletedData.scores); 
             alert(`${currentSongNumber} 曲目の入力に戻りました。`);
         }
 
@@ -397,13 +745,22 @@
             };
 
             allSongsData.push(songData); 
+            
+            currentSongNumber++; 
+            document.getElementById('current_song_display').textContent = currentSongNumber;
+            updateOverallResultButtonStatus();
+            resetCurrentScores(); 
+            
+            saveData(); // データをlocalStorageに保存
 
-            let alertMessage = `${currentSongNumber}曲目のスコアを記録しました！\n\n`;
+            logAction('操作', `${currentSongNumber - 1}曲目のスコアを確定`, songData.scores); 
+
+            let alertMessage = `${currentSongNumber - 1}曲目のスコアを記録しました！\n\n`;
             
             const overallPlayerData = getOverallPlayerData(true); 
             
-            if (currentSongNumber < totalSongs) {
-                 alertMessage += `次の ${currentSongNumber + 1} 曲目へ進みます。\n\n`;
+            if (currentSongNumber <= totalSongs) {
+                 alertMessage += `次の ${currentSongNumber} 曲目へ進みます。\n\n`;
             } else {
                 alertMessage += `これで総曲数に達しました！\n「🏆 全曲の総合結果を表示」ボタンが押せるようになりました。`;
             }
@@ -414,11 +771,6 @@
             });
             
             alert(alertMessage);
-            
-            currentSongNumber++; 
-            document.getElementById('current_song_display').textContent = currentSongNumber;
-            updateOverallResultButtonStatus();
-            resetCurrentScores(); 
         }
 
         function getPlayerData() {
@@ -527,6 +879,8 @@
             }
             
             highlightWinners(dataForHighlight, highlightType);
+            
+            logAction('操作', `${title}の数値を表示/ハイライト`); 
         }
 
         function highlightWinners(data, type) {
@@ -575,12 +929,10 @@
 
         function calculateAndShowSingleSongResult() {
             const allPlayerData = getPlayerData();
-            
             const songTitle = `曲目 ${currentSongNumber} の単体結果`;
-
             generateResultTable(allPlayerData, songTitle, 'single_song');
-            
             toggleScreens(false);
+            logAction('操作', songTitle, allPlayerData.map(p => `${p.name}: ${p.totalScore}点`)); 
         }
 
         function calculateAndShowOverallResults() {
@@ -590,10 +942,9 @@
             }
             
             const overallPlayerData = getOverallPlayerData();
-            
             generateResultTable(overallPlayerData, '総合結果', 'overall');
-            
             toggleScreens(false);
+            logAction('操作', '総合結果を表示', overallPlayerData.map(p => `${p.name}: ${p.totalScore}点`)); 
         }
 
         function getOverallPlayerData() {
