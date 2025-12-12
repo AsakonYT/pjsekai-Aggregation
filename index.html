@@ -1740,9 +1740,10 @@
                     if (headerCol) headerCol.style.display = 'none';
                     if (nameInput) nameInput.parentElement.style.display = 'none';
                 } else {
-                    inputs.forEach(el => el.style.display = 'block');
-                    if (headerCol) headerCol.style.display = 'block';
-                    if (nameInput) nameInput.parentElement.style.display = 'block';
+                    // restore to default display (do not force block) so layout stays horizontal
+                    inputs.forEach(el => el.style.display = '');
+                    if (headerCol) headerCol.style.display = '';
+                    if (nameInput) nameInput.parentElement.style.display = 'inline-block';
                 }
             }
             logAction('設定', `プレイヤー数を${selected}人に変更`);
@@ -1804,9 +1805,38 @@
             }
 
             const currentScores = getPlayerData();
-            
-            // ノーツ数は自動計算されるので、そのまま確定します
-            
+
+            // 確定前に、アクティブプレイヤーのノーツ数が全員一致するか確認する
+            const playerCountSel = document.getElementById('player_count_select');
+            const activeCount = playerCountSel ? parseInt(playerCountSel.value) || NUM_PLAYERS : NUM_PLAYERS;
+            const activePlayers = currentScores.slice(0, activeCount);
+            if (activePlayers.length > 0) {
+                const firstNotes = activePlayers[0].totalNotes || 0;
+                const mismatches = activePlayers.filter(p => (p.totalNotes || 0) !== firstNotes);
+                if (mismatches.length > 0) {
+                    mismatches.forEach(p => {
+                        const notesEl = document.getElementById(`notes_${p.id}`);
+                        if (notesEl) {
+                            notesEl.style.border = '2px solid #dc3545';
+                            notesEl.style.boxShadow = '0 0 6px rgba(220,53,69,0.6)';
+                        }
+                    });
+                    setTimeout(() => {
+                        mismatches.forEach(p => {
+                            const notesEl = document.getElementById(`notes_${p.id}`);
+                            if (notesEl) {
+                                notesEl.style.border = '';
+                                notesEl.style.boxShadow = '';
+                            }
+                        });
+                    }, 3000);
+
+                    alert('ノーツ数がプレイヤー間で一致していません。スコアを確定できません。\n\n' +
+                        mismatches.map(p => `${p.name}: ${p.totalNotes} ノーツ`).join('\n'));
+                    return;
+                }
+            }
+
             const totalScoreSum = currentScores.reduce((sum, p) => sum + p.totalScore, 0);
             if (totalScoreSum === 0 && !confirm("この曲のスコアは全て0点ですが、確定してよろしいですか？")) {
                 return;
